@@ -1,0 +1,6 @@
+language: go
+go:
+  - 1.10
+
+script:
+  - golint -set_exit_status $(go list ./...) # one last linter
