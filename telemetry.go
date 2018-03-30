@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"io"
 	"io/ioutil"
+	"reflect"
 	"time"
 
 	"github.com/sirupsen/logrus"
@@ -423,8 +424,7 @@ func (t *Telemetry) getPlayer(name, accountID string) *Player {
 		t.Players[accountID] = newPlayer(name, accountID)
 	}
 
-	player, _ := t.Players[accountID]
-	return player
+	return t.Players[accountID]
 }
 
 func (t *Telemetry) addPlayerEvent(te *TelemetryEvent, character *TelemetryCharacter, matchStarted bool) {
@@ -441,75 +441,65 @@ func (t *Telemetry) addPlayerEvent(te *TelemetryEvent, character *TelemetryChara
 }
 
 func (t *Telemetry) processEvent(te *TelemetryEvent) {
-
 	logrus.WithFields(logrus.Fields{
 		"type": KnownEventTypes[te.Type],
 	}).Debug("Processing event")
 
-	switch te.Type {
-	case MatchDefinition:
-		t.PingQuality = te.PingQuality
-		t.MatchID = te.MatchID
-
-	case MatchStart:
-		t.MatchStarted = true
-
-	case MatchEnd:
-		// Update player ranking
-		for _, c := range te.Characters {
-			player := t.getPlayer(c.Name, c.AccountID)
-			player.Ranking = c.Ranking
-		}
-
-	case PlayerLogin:
-	case PlayerLogout:
-		// Do nothing
-
-	case PlayerCreate:
-		// Create player
-		player := t.getPlayer(te.Character.Name, te.Character.AccountID)
-		player.TeamID = te.Character.TeamID
-
-	case PlayerPosition:
+	// Look for common fields
+	if te.Character != nil {
 		t.addPlayerEvent(te, te.Character, t.MatchStarted)
-
-	case PlayerAttack:
-		t.addPlayerEvent(te, te.Attacker, t.MatchStarted)
-
-	case PlayerTakeDamage:
-		t.addPlayerEvent(te, te.Attacker, t.MatchStarted)
-		t.addPlayerEvent(te, te.Victim, t.MatchStarted)
-
-	case PlayerKill:
-		t.addPlayerEvent(te, te.Killer, t.MatchStarted)
-		t.addPlayerEvent(te, te.Victim, t.MatchStarted)
-
-	case VehicleRide:
-	case VehicleLeave:
-		t.addPlayerEvent(te, te.Character, t.MatchStarted)
-
-	case VehicleDestroy:
-		t.addPlayerEvent(te, te.Attacker, t.MatchStarted)
-
-	case ItemEquip:
-	case ItemUnequip:
-	case ItemPickup:
-	case ItemDrop:
-	case ItemAttach:
-	case ItemDetach:
-	case ItemUse:
-		t.addPlayerEvent(te, te.Character, t.MatchStarted)
-
-	case GameStatePeriodic:
-		// Do nothing for now
-
-	case CarePackageSpawn:
-	case CarePackageLand:
-		// Do nothing for now
-
-	default:
-		logrus.Fatalf("Unmanaged event: %s", KnownEventTypes[te.Type])
 	}
+
+	// Look for a custom function to specialize the data
+	functionName := "Process" + KnownEventTypes[te.Type]
+	f := reflect.ValueOf(t).MethodByName(functionName)
+	if f.IsValid() {
+		f.Call([]reflect.Value{
+			reflect.ValueOf(te),
+		})
+	}
+}
+
+// ProcessLogMatchDefinition deals with event of type MatchDefinition
+func (t *Telemetry) ProcessLogMatchDefinition(te *TelemetryEvent) {
+	t.PingQuality = te.PingQuality
+	t.MatchID = te.MatchID
+}
+
+// ProcessLogMatchStart deals with event of type MatchStart
+func (t *Telemetry) ProcessLogMatchStart(te *TelemetryEvent) {
+	t.MatchStarted = true
+}
+
+// ProcessLogMatchEnd deals with event of type MatchEnd
+func (t *Telemetry) ProcessLogMatchEnd(te *TelemetryEvent) {
+	// Update player ranking
+	for _, c := range te.Characters {
+		player := t.getPlayer(c.Name, c.AccountID)
+		player.Ranking = c.Ranking
+	}
+}
+
+// ProcessLogPlayerCreate deals with event of type PlayerCreate
+func (t *Telemetry) ProcessLogPlayerCreate(te *TelemetryEvent) {
+	player := t.getPlayer(te.Character.Name, te.Character.AccountID)
+	player.TeamID = te.Character.TeamID
+}
+
+// ProcessLogPlayerAttack deals with event of type PlayerAttack
+func (t *Telemetry) ProcessLogPlayerAttack(te *TelemetryEvent) {
+	t.addPlayerEvent(te, te.Attacker, t.MatchStarted)
+}
+
+// ProcessLogPlayerTakeDamage deals with event of type PlayerTakeDamage
+func (t *Telemetry) ProcessLogPlayerTakeDamage(te *TelemetryEvent) {
+	t.addPlayerEvent(te, te.Attacker, t.MatchStarted)
+	t.addPlayerEvent(te, te.Victim, t.MatchStarted)
+}
+
+// ProcessLogVehicleDestroy deals with event of type VehicleDestroy
+func (t *Telemetry) ProcessLogVehicleDestroy(te *TelemetryEvent) {
+	t.addPlayerEvent(te, te.Attacker, t.MatchStarted)
 }
 
 // ParseTelemetry parses a json response containing telemetry information
