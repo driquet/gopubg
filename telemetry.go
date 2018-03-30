@@ -7,6 +7,8 @@ import (
 	"io"
 	"io/ioutil"
 	"time"
+
+	"github.com/sirupsen/logrus"
 )
 
 // TelemetryEventType represents the type of a telemetry event
@@ -48,7 +50,8 @@ const (
 	CarePackageLand
 )
 
-var knownEventTypes = []string{
+// KnownEventTypes represents supported types
+var KnownEventTypes = []string{
 	"LogPlayerLogin",
 	"LogPlayerLogout",
 	"LogPlayerCreate",
@@ -81,7 +84,7 @@ func (t *TelemetryEventType) UnmarshalJSON(data []byte) error {
 	}
 
 	key := string(data)
-	idx := findIndex(key[1:len(key)-1], knownEventTypes)
+	idx := findIndex(key[1:len(key)-1], KnownEventTypes)
 	if idx == -1 {
 		return fmt.Errorf("TelemetryEventType: Unknown type %s", key)
 	}
@@ -375,16 +378,137 @@ type TelemetryLocation struct {
 	Z float64 `json:"Z"`
 }
 
+// Player represents a player
+type Player struct {
+	Name      string
+	AccountID string
+	TeamID    int
+	Events    []*TelemetryEvent
+	Locations []*TelemetryLocation
+	Ranking   int
+}
+
+func newPlayer(name, accountID string) *Player {
+	return &Player{
+		Name:      name,
+		AccountID: accountID,
+		TeamID:    -1,
+		Events:    make([]*TelemetryEvent, 0),
+		Locations: make([]*TelemetryLocation, 0),
+		Ranking:   -1,
+	}
+}
+
 // Telemetry represents the context of a telemetry file
 type Telemetry struct {
-	Events      []*TelemetryEvent
-	PlayerNames []string
+	Events       []*TelemetryEvent
+	Players      map[string]*Player
+	MatchStarted bool
+	PingQuality  string
+	MatchID      string
 }
 
 func newTelemetry() *Telemetry {
 	return &Telemetry{
-		Events:      make([]*TelemetryEvent, 0),
-		PlayerNames: make([]string, 0),
+		Events:       make([]*TelemetryEvent, 0),
+		Players:      make(map[string]*Player),
+		MatchStarted: false,
+		PingQuality:  "",
+		MatchID:      "",
+	}
+}
+
+func (t *Telemetry) getPlayer(name, accountID string) *Player {
+	if _, ok := t.Players[accountID]; !ok {
+		t.Players[accountID] = newPlayer(name, accountID)
+	}
+
+	player, _ := t.Players[accountID]
+	return player
+}
+
+func (t *Telemetry) addPlayerEvent(te *TelemetryEvent, character *TelemetryCharacter, matchStarted bool) {
+	if character.Name == "" {
+		return
+	}
+
+	player := t.getPlayer(character.Name, character.AccountID)
+
+	if matchStarted {
+		player.Events = append(player.Events, te)
+		player.Locations = append(player.Locations, character.Location)
+	}
+}
+
+func (t *Telemetry) processEvent(te *TelemetryEvent) {
+
+	logrus.WithFields(logrus.Fields{
+		"type": KnownEventTypes[te.Type],
+	}).Debug("Processing event")
+
+	switch te.Type {
+	case MatchDefinition:
+		t.PingQuality = te.PingQuality
+		t.MatchID = te.MatchID
+
+	case MatchStart:
+		t.MatchStarted = true
+
+	case MatchEnd:
+		// Update player ranking
+		for _, c := range te.Characters {
+			player := t.getPlayer(c.Name, c.AccountID)
+			player.Ranking = c.Ranking
+		}
+
+	case PlayerLogin:
+	case PlayerLogout:
+		// Do nothing
+
+	case PlayerCreate:
+		// Create player
+		player := t.getPlayer(te.Character.Name, te.Character.AccountID)
+		player.TeamID = te.Character.TeamID
+
+	case PlayerPosition:
+		t.addPlayerEvent(te, te.Character, t.MatchStarted)
+
+	case PlayerAttack:
+		t.addPlayerEvent(te, te.Attacker, t.MatchStarted)
+
+	case PlayerTakeDamage:
+		t.addPlayerEvent(te, te.Attacker, t.MatchStarted)
+		t.addPlayerEvent(te, te.Victim, t.MatchStarted)
+
+	case PlayerKill:
+		t.addPlayerEvent(te, te.Killer, t.MatchStarted)
+		t.addPlayerEvent(te, te.Victim, t.MatchStarted)
+
+	case VehicleRide:
+	case VehicleLeave:
+		t.addPlayerEvent(te, te.Character, t.MatchStarted)
+
+	case VehicleDestroy:
+		t.addPlayerEvent(te, te.Attacker, t.MatchStarted)
+
+	case ItemEquip:
+	case ItemUnequip:
+	case ItemPickup:
+	case ItemDrop:
+	case ItemAttach:
+	case ItemDetach:
+	case ItemUse:
+		t.addPlayerEvent(te, te.Character, t.MatchStarted)
+
+	case GameStatePeriodic:
+		// Do nothing for now
+
+	case CarePackageSpawn:
+	case CarePackageLand:
+		// Do nothing for now
+
+	default:
+		logrus.Fatalf("Unmanaged event: %s", KnownEventTypes[te.Type])
 	}
 }
 
@@ -404,12 +528,7 @@ func ParseTelemetry(in io.Reader) (*Telemetry, error) {
 
 	// Find players
 	for _, e := range t.Events {
-		if e.Type == MatchStart {
-			for _, c := range e.Characters {
-				t.PlayerNames = append(t.PlayerNames, c.Name)
-			}
-			break
-		}
+		t.processEvent(e)
 	}
 
 	return t, nil

@@ -33,6 +33,8 @@ func init() {
 }
 
 func main() {
+	logrus.SetLevel(logrus.DebugLevel)
+
 	file, err := os.Open(input)
 	if err != nil {
 		logrus.Fatal(err)
@@ -44,9 +46,17 @@ func main() {
 	}
 
 	fmt.Printf("%d events parsed\n", len(t.Events))
-	fmt.Printf("%d players\n", len(t.PlayerNames))
+	fmt.Printf("%d players\n", len(t.Players))
 
-	for _, p := range t.PlayerNames {
-		fmt.Printf(" - %s\n", p)
+	for _, player := range t.Players {
+		fmt.Printf(" - %s (%d events, ranking=%d)\n", player.Name, len(player.Events), player.Ranking)
+		if player.Ranking == 1 {
+			fmt.Printf("winner: %s\n", player.Name)
+
+			for idx, evt := range player.Events {
+				fmt.Printf("%d: %s\n", idx, gopubg.KnownEventTypes[evt.Type])
+			}
+			break
+		}
 	}
 }
