@@ -21,8 +21,8 @@ func findIndex(key string, possibleKeys []string) int {
 	return -1
 }
 
+// Telemetry event types
 const (
-	// Player related events
 	PlayerLogin TelemetryEventType = iota
 	PlayerLogout
 	PlayerCreate
@@ -30,8 +30,6 @@ const (
 	PlayerAttack
 	PlayerTakeDamage
 	PlayerKill
-
-	// Item related events
 	ItemPickup
 	ItemDrop
 	ItemEquip
@@ -39,21 +37,13 @@ const (
 	ItemAttach
 	ItemDetach
 	ItemUse
-
-	// Vehicle related events
 	VehicleRide
 	VehicleLeave
 	VehicleDestroy
-
-	// Match related events
 	MatchStart
 	MatchEnd
 	MatchDefinition
-
-	// Game related events
 	GameStatePeriodic
-
-	// CarePackage
 	CarePackageSpawn
 	CarePackageLand
 )
@@ -93,7 +83,7 @@ func (t *TelemetryEventType) UnmarshalJSON(data []byte) error {
 	key := string(data)
 	idx := findIndex(key[1:len(key)-1], knownEventTypes)
 	if idx == -1 {
-		return errors.New(fmt.Sprintf("TelemetryEventType: Unknown type %s", key))
+		return fmt.Errorf("TelemetryEventType: Unknown type %s", key)
 	}
 
 	*t = TelemetryEventType(idx)
@@ -103,6 +93,7 @@ func (t *TelemetryEventType) UnmarshalJSON(data []byte) error {
 // TelemetryAttackType represents the type of an attack
 type TelemetryAttackType int
 
+// Telemetry attack types
 const (
 	AttackTypeRedZone TelemetryAttackType = iota
 	AttackTypeWeapon
@@ -122,7 +113,7 @@ func (t *TelemetryAttackType) UnmarshalJSON(data []byte) error {
 	key := string(data)
 	idx := findIndex(key[1:len(key)-1], knownAttackTypes)
 	if idx == -1 {
-		return errors.New(fmt.Sprintf("TelemetryAttackType: Unknown type %s", key))
+		return fmt.Errorf("TelemetryAttackType: Unknown type %s", key)
 	}
 
 	*t = TelemetryAttackType(idx)
@@ -132,6 +123,7 @@ func (t *TelemetryAttackType) UnmarshalJSON(data []byte) error {
 // TelemetrySubCategory represents the category of an item
 type TelemetrySubCategory int
 
+// Telemetry sub categories
 const (
 	SubCategoryBackpack TelemetrySubCategory = iota
 	SubCategoryBoost
@@ -173,15 +165,17 @@ func (t *TelemetrySubCategory) UnmarshalJSON(data []byte) error {
 	key := string(data)
 	idx := findIndex(key[1:len(key)-1], knownSubCategories)
 	if idx == -1 {
-		return errors.New(fmt.Sprintf("TelemetrySubCategory: Unknown type %s", key))
+		return fmt.Errorf("TelemetrySubCategory: Unknown type %s", key)
 	}
 
 	*t = TelemetrySubCategory(idx)
 	return nil
 }
 
+// TelemetryDamageType represents the different types of damage
 type TelemetryDamageType int
 
+// Telemetry damage types
 const (
 	DamageBlueZone TelemetryDamageType = iota
 	DamageDrown
@@ -223,16 +217,17 @@ func (t *TelemetryDamageType) UnmarshalJSON(data []byte) error {
 	key := string(data)
 	idx := findIndex(key[1:len(key)-1], knownDamageTypes)
 	if idx == -1 {
-		return errors.New(fmt.Sprintf("TelemetryDamageType: Unknown type %s", key))
+		return fmt.Errorf("TelemetryDamageType: Unknown type %s", key)
 	}
 
 	*t = TelemetryDamageType(idx)
 	return nil
 }
 
-// DamageReason represents the reason of the damage
+// TelemetryDamageReason represents the reason of the damage
 type TelemetryDamageReason int
 
+// Telemetry damage reasons
 const (
 	DamageReasonArmShot TelemetryDamageReason = iota
 	DamageReasonHeadShot
@@ -262,7 +257,7 @@ func (t *TelemetryDamageReason) UnmarshalJSON(data []byte) error {
 	key := string(data)
 	idx := findIndex(key[1:len(key)-1], knownDamageReasons)
 	if idx == -1 {
-		return errors.New(fmt.Sprintf("TelemetryDamageReason: Unknown type %s", key))
+		return fmt.Errorf("TelemetryDamageReason: Unknown type %s", key)
 	}
 
 	*t = TelemetryDamageReason(idx)
