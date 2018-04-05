@@ -5,7 +5,7 @@ import (
 	"fmt"
 	"os"
 
-	"github.com/driquet/gopubg"
+	"github.com/driquet/gopubg/models/telemetry"
 	"github.com/sirupsen/logrus"
 )
 
@@ -40,7 +40,7 @@ func main() {
 		logrus.Fatal(err)
 	}
 
-	t, err := gopubg.ParseTelemetry(file)
+	t, err := telemetry.ParseTelemetry(file)
 	if err != nil {
 		logrus.Fatal(err)
 	}
@@ -54,7 +54,7 @@ func main() {
 			fmt.Printf("winner: %s\n", player.Name)
 
 			for idx, evt := range player.Events {
-				fmt.Printf("%d: %s\n", idx, gopubg.KnownEventTypes[evt.Type])
+				fmt.Printf("%d: %s\n", idx, telemetry.KnownEventTypes[evt.Type])
 			}
 			break
 		}

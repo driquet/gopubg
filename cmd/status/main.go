@@ -5,13 +5,12 @@ import (
 	"fmt"
 	"os"
 
-	"github.com/davecgh/go-spew/spew"
-	"github.com/driquet/gopubg/models/match"
+	"github.com/driquet/gopubg"
 	"github.com/sirupsen/logrus"
 )
 
 var (
-	input string
+	key string
 )
 
 func usage() {
@@ -22,27 +21,21 @@ func usage() {
 
 func init() {
 	// Parameters
-	flag.StringVar(&input, "input", "", "input file")
+	flag.StringVar(&key, "key", "", "api key")
 
 	// Parse parameters
 	flag.Parse()
 
 	// Verify parameters
-	if input == "" {
+	if key == "" {
 		usage()
 	}
 }
 
 func main() {
-	file, err := os.Open(input)
+	api := gopubg.NewAPI(key)
+	err := api.RequestStatus()
 	if err != nil {
 		logrus.Fatal(err)
 	}
-
-	m, err := match.ParseMatch(file)
-	if err != nil {
-		logrus.Fatal(err)
-	}
-
-	spew.Dump(m)
 }

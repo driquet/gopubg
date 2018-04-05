@@ -1,4 +1,4 @@
-package gopubg
+package match
 
 import (
 	"errors"

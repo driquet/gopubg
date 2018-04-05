@@ -1,4 +1,4 @@
-package gopubg
+package match
 
 // Roster represents a team of participants
 type Roster struct {

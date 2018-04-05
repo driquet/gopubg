@@ -1,4 +1,4 @@
-package gopubg
+package match
 
 // Participant represents a player for a match
 type Participant struct {

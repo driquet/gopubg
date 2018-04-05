@@ -1,4 +1,4 @@
-package gopubg
+package telemetry
 
 import (
 	"encoding/json"
