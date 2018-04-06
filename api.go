@@ -44,5 +44,6 @@ func (a *API) RequestSinglePlayerByName(shard, playerName string) (*player.Playe
 
 	fmt.Printf("data:\n%s\n", buffer)
 
-	return nil
+	// TODO parse player
+	return nil, nil
 }
