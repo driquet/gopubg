@@ -3,6 +3,8 @@ package gopubg
 import (
 	"fmt"
 	"net/url"
+
+	"github.com/driquet/gopubg/models/player"
 )
 
 type API struct {
@@ -28,7 +30,7 @@ func (a *API) RequestStatus() error {
 	return nil
 }
 
-func (a *API) RequestSinglePlayerByName(shard, playerName string) error {
+func (a *API) RequestSinglePlayerByName(shard, playerName string) (*player.Player, error) {
 	parameters := url.Values{
 		"filter[playerNames]": {playerName},
 	}
@@ -37,7 +39,7 @@ func (a *API) RequestSinglePlayerByName(shard, playerName string) error {
 
 	buffer, err := httpRequest(endpoint_url, a.Key)
 	if err != nil {
-		return err
+		return nil, err
 	}
 
 	fmt.Printf("data:\n%s\n", buffer)
