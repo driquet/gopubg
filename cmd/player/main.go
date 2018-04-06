@@ -38,7 +38,7 @@ func init() {
 
 func main() {
 	api := gopubg.NewAPI(key)
-	err := api.RequestSinglePlayerByName(shard, playerName)
+	_, err := api.RequestSinglePlayerByName(shard, playerName)
 	if err != nil {
 		logrus.Fatal(err)
 	}
