@@ -10,6 +10,7 @@ import (
 	"github.com/sirupsen/logrus"
 )
 
+//httpsRequest A helper function for making an http request to url, with key api key
 func httpRequest(url, key string) (*bytes.Buffer, error) {
 	logrus.WithField("url", url).Info("pubg api request")
 
@@ -27,7 +28,9 @@ func httpRequest(url, key string) (*bytes.Buffer, error) {
 	// Execute request
 	client := &http.Client{}
 	response, err := client.Do(req)
-
+	if err != nil {
+		return nil, fmt.Errorf("HTTP request failed: %s", err)
+	}
 	// Check http response code
 	if response.StatusCode != 200 {
 		response.Body.Close()
